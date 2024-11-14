@@ -1,0 +1,60 @@
+const db = require('../config/db');
+
+// Function to borrow a book
+exports.borrowBook = (req, res) => {
+  const { bookId } = req.body;
+  const userId = req.user.id; // Extract the user ID from the JWT payload
+
+  // Check if the book is available for borrowing
+  db.query('SELECT isAvailable FROM books WHERE id = ?', [bookId], (err, results) => {
+    if (err || results.length === 0 || !results[0].isAvailable) {
+      return res.status(400).json({ message: 'Book is not available.' });
+    }
+
+    // If available, create a borrow record
+    db.query('INSERT INTO borrow_records (user_id, book_id, borrowed_date) VALUES (?, ?, NOW())', [userId, bookId], (err) => {
+      if (err) return res.status(500).json({ message: 'Error borrowing book.' });
+
+      // Update the book's availability to false
+      db.query('UPDATE books SET isAvailable = 0 WHERE id = ?', [bookId], (err) => {
+        if (err) return res.status(500).json({ message: 'Error updating book availability.' });
+        res.status(201).json({ message: 'Book borrowed successfully.' });
+      });
+    });
+  });
+};
+
+// Function to return a borrowed book
+exports.returnBook = (req, res) => {
+  const { bookId } = req.body;
+  const userId = req.user.id; // Extract the user ID from the JWT payload
+
+  // Check if the member has borrowed the book
+  db.query('SELECT * FROM borrow_records WHERE user_id = ? AND book_id = ? AND returned_date IS NULL', [userId, bookId], (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(400).json({ message: 'You have not borrowed this book.' });
+    }
+
+    // Mark the book as returned
+    db.query('UPDATE borrow_records SET returned_date = NOW() WHERE user_id = ? AND book_id = ?', [userId, bookId], (err) => {
+      if (err) return res.status(500).json({ message: 'Error returning book.' });
+
+      // Update the book's availability to true
+      db.query('UPDATE books SET isAvailable = 1 WHERE id = ?', [bookId], (err) => {
+        if (err) return res.status(500).json({ message: 'Error updating book availability.' });
+        res.status(200).json({ message: 'Book returned successfully.' });
+      });
+    });
+  });
+};
+
+// Function to view the member's borrowed book history
+exports.viewBorrowHistory = (req, res) => {
+  const userId = req.user.id; // Extract the user ID from the JWT payload
+
+  // Fetch the borrow history of the member
+  db.query('SELECT books.title, books.author, borrow_records.borrowed_date, borrow_records.returned_date FROM borrow_records JOIN books ON borrow_records.book_id = books.id WHERE borrow_records.user_id = ?', [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Error fetching borrow history.' });
+    res.json(results);
+  });
+};
