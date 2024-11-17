@@ -3,7 +3,7 @@ const router = express.Router();
 const UserController = require('../Controller/UserController');
 const authController = require('../Controller/AuthController');
 const bookController = require('../Controller/BookController');
-// const borrowController = require('../controllers/borrowController');
+const borrowController = require('../Controller/borrowController');
 const { authenticateToken } = require('../mid/auth');
 
 router.post('/login', authController.login);
@@ -22,7 +22,10 @@ router.put('/books/:id/', authenticateToken, bookController.updateBook);
 
 // Member Routes
 // router.post('/borrow', authenticateToken, borrowController.borrowBook);
-// router.post('/return', authenticateToken, borrowController.returnBook);
-// router.get('/borrow-history', authenticateToken,borrowController.viewBorrowHistory);
+router.post('/borrow',authenticateToken, borrowController.borrowBook);
+router.put('/return',authenticateToken, borrowController.returnBook);
+router.get('/borrow-history/:id',authenticateToken, borrowController.viewBorrowHistory);
+
+router.get('/return_list', borrowController.return_list);
 
 module.exports = router;

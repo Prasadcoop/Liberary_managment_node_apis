@@ -16,4 +16,4 @@ function authenticateToken(req, res, next) {
 
 
 
-module.exports = { authenticateToken, authorizeRoles };
+module.exports = { authenticateToken };
